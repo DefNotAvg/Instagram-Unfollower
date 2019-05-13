@@ -1,0 +1,9 @@
+{
+	"username": "USERNAME",
+	"password": "PASSWORD",
+	"followerMin": 0,
+	"keepVerified": false,
+	"whitelist": "whitelist.txt",
+	"delay": 0,
+	"width": 50
+}
