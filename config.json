@@ -4,6 +4,7 @@
 	"followerMin": 0,
 	"keepVerified": false,
 	"whitelist": "whitelist.txt",
-	"delay": 0,
+	"whitelistAll": false,
+	"delay": 20,
 	"width": 50
 }
