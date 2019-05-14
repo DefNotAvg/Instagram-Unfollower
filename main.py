@@ -18,8 +18,8 @@ def load_from_json(file):
 config = load_from_json('config.json')
 username = config['username']
 password = config['password']
-follower_min = config['followerMin']
 keep_verified = config['keepVerified']
+remove_unfollowers = config['removeUnfollowers']
 whitelist = config['whitelist']
 whitelist_all = config['whitelistAll']
 delay = config['delay']
@@ -46,6 +46,14 @@ def center(text, spacer=' ', length=width, clear=False, display=True):
 		else:
 			return text
 
+def header(full=True):
+	center(' ', clear=True)
+	center('Instagram Unfollower by @DefNotAvg')
+	center('-', '-')
+	if full:
+		center('Signed in as @{}'.format(username))
+		center('-', '-')
+
 def smart_sleep(delay):
 	if delay > 0:
 		for a in range(delay, 0, -1):
@@ -54,6 +62,8 @@ def smart_sleep(delay):
 		center('Sleeping for {} seconds complete!'.format(str(delay)))
 
 def format_whitelist(whitelist):
+	center('Formatting {}...'.format(whitelist))
+	center(' ')
 	try:
 		with open(whitelist, 'r') as myfile:
 			result = myfile.read().splitlines()
@@ -69,12 +79,13 @@ def format_whitelist(whitelist):
 			try:
 				blockPrint()
 				api.searchUsername(username)
-				result[i] = api.LastJson['user']['pk']
+				api_result = api.LastJson
+				result[i] = api_result['user']['pk']
 				enablePrint()
 				center('Successfully formatted @{}!!'.format(username))
 			except KeyError:
 				enablePrint()
-				if api.LastJson['message'] == 'User not found':
+				if api_result['message'] == 'User not found':
 					center('Unable to find @{} on Instagram.'.format(username))
 					to_remove.append(username)
 				else:
@@ -85,93 +96,111 @@ def format_whitelist(whitelist):
 			center(' ')
 	for item in to_remove:
 		result.remove(item)
+	with open(whitelist, 'w') as myfile:
+		myfile.write('\n'.join([str(item) for item in result]))
+	center('Successfully formatted {}!!'.format(whitelist))
 	return result
 
-def unfollow(item):
-	api.unfollow(item[0])
-	if not api.LastJson['friendship_status']['following']:
-		center('Successfully unfollowed @{}!!'.format(item[1]))
-		return True
+def gather_followers():
+	center('Gathering followers...'.format(whitelist))
+	center(' ')
+	followers = []
+	next_max_id = True
+	while next_max_id:
+		if next_max_id is True:
+			next_max_id = ''
+		api.getUserFollowers(api.username_id, maxid=next_max_id)
+		api_request = api.LastJson
+		old_len = len(followers)
+		followers.extend([item['pk'] for item in api_request.get('users', [])])
+		next_max_id = api_request.get('next_max_id', '')
+		center('Gathered {} followers!!'.format(str(len(followers) - old_len)))
+		if next_max_id:
+			smart_sleep(delay)
+		center(' ')
+	if len(followers) == 1:
+		center('Successfully gathered {} follower in total!!'.format(len(followers)))
 	else:
-		center('Unable to unfollow @{}.'.format(item[1]))
-		return False
+		center('Successfully gathered {} followers in total!!'.format(len(followers)))
+	return followers
 
-center(' ', clear=True)
-center('Instagram Unfollower by @DefNotAvg')
-center('-', '-')
+def filter_following(following, followers):
+	if len(following) == 1:
+		print('{}\r'.format(center('Filtering {} currently followed user...'.format(str(len(following))), display=False)), end='')
+	else:
+		print('{}\r'.format(center('Filtering {} currently followed users...'.format(str(len(following))), display=False)), end='')
+	to_unfollow = []
+	for item in following:
+		if remove_unfollowers and keep_verified:
+			if item[0] not in followers:
+				if not item[2]:
+					to_unfollow.append(item)
+		elif remove_unfollowers:
+			if item[0] not in followers:
+				to_unfollow.append(item)
+		elif keep_verified:
+			if not item[2]:
+				to_unfollow.append(item)
+		else:
+			to_unfollow.append(item)
+	if len(following) == 1:
+		center('Successfully filtered {} currently followed user!!'.format(str(len(following))))
+	else:
+		center('Successfully filtered {} currently followed users!!'.format(str(len(following))))
+	center(' ')
+	return to_unfollow
+
+def unfollow(to_unfollow):
+	count = 0
+	if len(to_unfollow) == 1:
+		center('{} user to unfollow...'.format(str(len(to_unfollow))))
+	else:
+		center('{} users to unfollow...'.format(str(len(to_unfollow))))
+	center(' ')
+	for item in to_unfollow:
+		api.unfollow(item[0])
+		if not api.LastJson['friendship_status']['following']:
+			center('Successfully unfollowed @{}!!'.format(item[1]))
+			count += 1
+		else:
+			center('Unable to unfollow @{}.'.format(item[1]))
+		smart_sleep(delay)
+		center(' ')
+	if count == 1:
+		center('Successfully unfollowed {} user!!'.format(str(count)))
+	else:
+		center('Successfully unfollowed {} users!!'.format(str(count)))
+
+header(False)
 blockPrint()
 api = InstagramAPI(username, password)
 if(api.login()):
 	enablePrint()
 	center('Signed in as @{}'.format(username))
 	center('-', '-')
-	api.getUserFollowings(api.username_id)
-	following = api.LastJson['users']
+	api.getSelfUsersFollowing()
+	following = [(item['pk'], item['username'], item['is_verified']) for item in api.LastJson['users']]
 	if whitelist_all:
 		with open(whitelist, 'w') as myfile:
-			myfile.write('\n'.join([item['username'] for item in following]))
+			myfile.write('\n'.join([item[1] for item in following]))
 		if len(following) == 1:
 			center('Successfully added {} user to {}!!'.format(str(len(following)), whitelist))
 		else:
 			center('Successfully added {} users to {}!!'.format(str(len(following)), whitelist))
 		quit()
-	following = [(item['pk'], item['username'], item['is_verified']) for item in following]
-	if len(following) == 1:
-		print('{}\r'.format(center('Filtering {} currently followed user...'.format(str(len(following))), display=False)), end='')
-	else:
-		print('{}\r'.format(center('Filtering {} currently followed users...'.format(str(len(following))), display=False)), end='')
-	if follower_min > 0:
-		to_unfollow = []
-		for item in following:
-			api.getUsernameInfo(item[0])
-			if keep_verified:
-				if api.LastJson['user']['follower_count'] >= follower_min and not item[2]:
-					to_unfollow.append(item)
-			else:
-				if api.LastJson['user']['follower_count'] >= follower_min:
-					to_unfollow.append(item)
-	else:
-		if keep_verified:
-			to_unfollow = []
-			for item in following:
-				if not item[2]:
-					to_unfollow.append(item)
-		else:
-			to_unfollow = following
-	if len(following) == 1:
-		center('Successfully filtered {} currently followed user!!'.format(str(len(following))))
-	else:
-		center('Successfully filtered {} currently followed users!!'.format(str(len(following))))
-	print('{}\n'.format(center('Formatting {}...'.format(whitelist), display=False)))
+	followers = []
+	if remove_unfollowers:
+		followers = gather_followers()
+		header()
+	if following:
+		to_unfollow = filter_following(following, followers)
 	formatted_whitelist = format_whitelist(whitelist)
-	with open(whitelist, 'w') as myfile:
-		myfile.write('\n'.join([str(item) for item in formatted_whitelist]))
-	center('Successfully formatted {}!!'.format(whitelist))
-	center(' ', clear=True)
-	center('Instagram Unfollower by @DefNotAvg')
-	center('-', '-')
-	center('Signed in as @{}'.format(username))
-	center('-', '-')
+	header()
 	to_unfollow = [item for item in to_unfollow if item[0] not in formatted_whitelist]
-	count = 0
 	if to_unfollow:
-		if len(to_unfollow) == 1:
-			center('{} user to unfollow...'.format(str(len(to_unfollow))))
-		else:
-			center('{} users to unfollow...'.format(str(len(to_unfollow))))
-		center(' ')
-		for i in range (0, len(to_unfollow)):
-			if unfollow(to_unfollow[i]):
-				count += 1
-			smart_sleep(delay)
-			center(' ')
-		if count == 1:
-			center('Successfully unfollowed {} user!!'.format(str(count)))
-		else:
-			center('Successfully unfollowed {} users!!'.format(str(count)))
+		unfollow(to_unfollow)
 	else:
-		center(' ')
 		center('No users to unfollow.')
 else:
 	enablePrint()
-	print('Failed to login.')
+	center('Failed to login.')
