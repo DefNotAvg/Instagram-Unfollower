@@ -102,7 +102,7 @@ def format_whitelist(whitelist):
 	return result
 
 def gather_followers():
-	center('Gathering followers...'.format(whitelist))
+	center('Gathering followers...')
 	center(' ')
 	followers = []
 	next_max_id = True
