@@ -119,14 +119,14 @@ def gather_followers():
 			smart_sleep(delay)
 		center(' ')
 	if len(followers) == 1:
-		center('Successfully gathered {} follower in total!!'.format(len(followers)))
+		center('Successfully gathered 1 follower in total!!')
 	else:
 		center('Successfully gathered {} followers in total!!'.format(len(followers)))
 	return followers
 
 def filter_following(following, followers):
 	if len(following) == 1:
-		print('{}\r'.format(center('Filtering {} currently followed user...'.format(str(len(following))), display=False)), end='')
+		print('{}\r'.format(center('Filtering 1 currently followed user...', display=False)), end='')
 	else:
 		print('{}\r'.format(center('Filtering {} currently followed users...'.format(str(len(following))), display=False)), end='')
 	to_unfollow = []
@@ -144,7 +144,7 @@ def filter_following(following, followers):
 		else:
 			to_unfollow.append(item)
 	if len(following) == 1:
-		center('Successfully filtered {} currently followed user!!'.format(str(len(following))))
+		center('Successfully filtered 1 currently followed user!!')
 	else:
 		center('Successfully filtered {} currently followed users!!'.format(str(len(following))))
 	center(' ')
@@ -153,21 +153,21 @@ def filter_following(following, followers):
 def unfollow(to_unfollow):
 	count = 0
 	if len(to_unfollow) == 1:
-		center('{} user to unfollow...'.format(str(len(to_unfollow))))
+		center('1 user to unfollow...')
 	else:
 		center('{} users to unfollow...'.format(str(len(to_unfollow))))
 	center(' ')
 	for item in to_unfollow:
 		api.unfollow(item[0])
 		if not api.LastJson['friendship_status']['following']:
-			center('Successfully unfollowed @{}!!'.format(item[1]))
 			count += 1
+			center('Successfully unfollowed @{}!! [{}/{}]'.format(item[1], str(count), str(len(to_unfollow))))
 		else:
-			center('Unable to unfollow @{}.'.format(item[1]))
+			center('Unable to unfollow @{}.'.format(item[1], str(count), str(len(to_unfollow))))
 		smart_sleep(delay)
 		center(' ')
 	if count == 1:
-		center('Successfully unfollowed {} user!!'.format(str(count)))
+		center('Successfully unfollowed 1 user!!')
 	else:
 		center('Successfully unfollowed {} users!!'.format(str(count)))
 
@@ -184,7 +184,7 @@ if(api.login()):
 		with open(whitelist, 'w') as myfile:
 			myfile.write('\n'.join([item[1] for item in following]))
 		if len(following) == 1:
-			center('Successfully added {} user to {}!!'.format(str(len(following)), whitelist))
+			center('Successfully added 1 user to {}!!'.format(whitelist))
 		else:
 			center('Successfully added {} users to {}!!'.format(str(len(following)), whitelist))
 		quit()
